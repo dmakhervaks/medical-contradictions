@@ -1,0 +1,8 @@
+model_info:
+  model_api_path: 'google/bert_uncased_L-12_H-768_A-12'
+  base_model_name: 'cross_encoder_bert_base'
+  base: bert_base
+  num_labels: 2
+  pretrained_on: wikipedia
+  batch_size: 8
+  fine_tuned_on:

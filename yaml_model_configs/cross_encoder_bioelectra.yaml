@@ -4,4 +4,5 @@ model_info:
   base: bioelectra
   num_labels: 2
   pretrained_on: pubmed_pmc
+  batch_size: 8
   fine_tuned_on:

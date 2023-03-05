@@ -1,0 +1,8 @@
+model_info:
+  model_api_path: '/home/davem/Sentence_Transformers/important_models/cross_encoder_distilroberta_finetuned_howevermoreover_cardio_manual_sentence_tokenizer'
+  base_model_name: 'cross_encoder_distilroberta'
+  base: distilroberta
+  num_labels: 2
+  pretrained_on: open_web_text
+  fine_tuned_on:
+    - however_moreover_balanced_cardio_manual_sent_tokenizer

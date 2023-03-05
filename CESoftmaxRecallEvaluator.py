@@ -14,6 +14,7 @@ import math
 import matplotlib.pyplot as plt
 from plotting import plot_roc
 from dython.model_utils import metric_graph
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class CESoftmaxGeneralEvaluator:
     recall of the predict class vs. the gold labels.
     """
     def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', write_csv: bool = True, pos_class: int = 1, main_eval_loop: bool = False, steps_in_epoch: int = -1, test_loop: bool = False,
-                batch_size: int = 32, metric: str = 'recall', best_threshold_stats: List[float] = None):
+                batch_size: int = 32, metric: str = 'recall', best_threshold_stats: List[float] = None, fine_tuned_datasets: str="",base_model_name: str=""):
         self.sentence_pairs = sentence_pairs
         self.labels = labels
         self.name = name
@@ -42,6 +43,10 @@ class CESoftmaxGeneralEvaluator:
         self.best_fpr = []
         self.best_tpr = []
         self.best_thresholds = []
+        self.base_model_name=base_model_name.replace("cross_encoder_","")
+        # print(fine_tuned_datasets)
+        assert len(fine_tuned_datasets) == 1
+        self.fine_tuned_datasets=fine_tuned_datasets[0]
 
         self.best_threshold_stats = best_threshold_stats
         if main_eval_loop:
@@ -93,6 +98,18 @@ class CESoftmaxGeneralEvaluator:
         return [fpr[index_of_best_score], tpr[index_of_best_score],best_threshold]
 
 
+    def best_accuracy_threshold(self, pred_prob):
+        pred_prob=np.array(pred_prob)
+        for threshold in np.arange(0.3, 0.7, 0.02):
+            y_predict_class = [1 if prob > threshold else 0 for prob in pred_prob[:,1]]
+            print(f"{round(threshold,3)} Accuracy:", round(accuracy_score(self.labels, y_predict_class), 3))
+            # print(f"{threshold} ROC AUC Score:", round(roc_auc_score(however_y, y_predict_class), 3))
+            total_matches = np.sum(self.labels==y_predict_class)
+            total_contras = np.sum(self.labels[self.labels==y_predict_class])
+            print(f"percent: {total_contras/total_matches}")
+            # print(f"totals -> matches: {total_matches} | contras: {total_contras} | percent: {total_contras/total_matches}")
+        
+
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, train_loss:int = 0) -> float:
         if epoch != -1:
             if steps == -1:
@@ -121,6 +138,15 @@ class CESoftmaxGeneralEvaluator:
             roc_auc = roc_auc_score(self.labels, np.array(pred_scores)[:,self.pos_class])
             fpr, tpr, thresholds = roc_curve(self.labels, np.array(pred_scores)[:,self.pos_class], pos_label=self.pos_class)
             average = 'binary'
+            
+            # print(pred_scores)
+            # print(self.fine_tuned_datasets)            
+            # print(self.name)
+            # assert False
+            pred_prob = []
+            for x,y in pred_scores:
+                pred_prob.append([self.sigmoid(x),self.sigmoid(y)])
+
             # fpr_pred, tpr_pred, thresholds_pred = roc_curve(self.labels, np.array(pred_prob)[:,self.pos_class], pos_label=self.pos_class)
             # roc_auc_sanity_sanity = auc(fpr,tpr)
             # roc_auc_sanity_pred = auc(fpr_pred,tpr_pred)
@@ -138,7 +164,8 @@ class CESoftmaxGeneralEvaluator:
 
         # TODO: maybe want to use a threshold?
         pred_labels = np.argmax(pred_scores, axis=1)
-
+        pred_labels_probs = np.argmax(pred_prob, axis=1)
+        assert (pred_labels==pred_labels_probs).all()
         if self.test_loop and self.best_threshold_stats is not None:
             best_threshold = self.best_threshold_stats[2]
             pred_labels = [1 if x > best_threshold else 0 for x in pred_scores[:,self.pos_class]]
@@ -149,14 +176,17 @@ class CESoftmaxGeneralEvaluator:
 
         #TODO: could be wrong...
         pred_labels = np.array(pred_labels)
-
+        total_matches = np.sum(self.labels==pred_labels)
+        total_contras = np.sum(self.labels[self.labels==pred_labels])
         loss_value = loss_fct(torch.from_numpy(pred_scores), torch.from_numpy(self.labels))
         recall = recall_score(self.labels, pred_labels,pos_label=self.pos_class, average=average)
         f1 = f1_score(self.labels, pred_labels,pos_label=self.pos_class, average=average)
         f2 = fbeta_score(self.labels, pred_labels, pos_label=self.pos_class, beta=2.0, average=average) # puts more weight on recall because of our motivation...
         precision = precision_score(self.labels, pred_labels,pos_label=self.pos_class, average=average)
         accuracy = accuracy_score(self.labels, pred_labels)
+        print(f"THE ACTUAL ACCURACY/PERCENTAGE: {round(accuracy,3)}|{round(total_contras/total_matches,3)}")
 
+        self.best_accuracy_threshold(pred_prob) # TODO: remove
         metrics = {"loss":-loss_value, "recall":recall, "precision":precision, "f1":f1, "f2":f2, "roc_auc":roc_auc, "accuracy":accuracy} # neg loss because it is opposite of other metrics
 
         logger.info("Recall: {:.2f}".format(recall*100))
@@ -177,10 +207,21 @@ class CESoftmaxGeneralEvaluator:
             wandb.log({"eval/loss":loss_value,"eval/recall":recall, "eval/precision":precision, "eval/f1":f1, "eval/f2":f2, "eval/roc_auc":roc_auc, "eval/accuracy":accuracy,"train/loss":train_loss}, step=current_step)
 
         if self.test_loop:
+            rounded_roc = round(roc_auc,3)
+            base_dir = "/home/davem/Sentence_Transformers/SIGIR_Results/"+self.fine_tuned_datasets+"/"+self.base_model_name
+            pred_score_file = base_dir+"/pred_scores_"+str(rounded_roc)+".npy"
+            label_file = base_dir+"/labels.npy"
+
+            if not os.path.exists(base_dir):
+                Path(base_dir).mkdir(parents=True, exist_ok=False)
+            np.save(pred_score_file,pred_scores)
+            np.save(label_file,self.labels)
             wandb.log({"test/recall":recall,"test/precision":precision, "test/f1":f1, "test/f2":f2, "test/roc_auc":roc_auc, "test/accuracy":accuracy})
             self.best_threshold_stats = self.youden_j_threshold(self.best_fpr, self.best_tpr, self.best_thresholds)
             plot_roc("Test ROC", self.best_fpr, self.best_tpr, self.best_threshold_stats, roc_auc)
-
+            np.save('predictions/pred_probs.npy', pred_prob)
+            np.save("predictions/self_probs.npy", self.labels)
+            
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)

@@ -5,4 +5,4 @@ model_info:
   num_labels: 2
   pretrained_on: pubmed_pmc
   fine_tuned_on:
-    - however_moreover
+    - however_moreover_balanced
