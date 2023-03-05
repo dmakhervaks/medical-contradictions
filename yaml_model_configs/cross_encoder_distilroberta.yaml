@@ -4,4 +4,5 @@ model_info:
   base: distilroberta
   num_labels: 2
   pretrained_on: open_web_text
+  batch_size: 16
   fine_tuned_on:

@@ -1,0 +1,8 @@
+model_info:
+  model_api_path: '/home/davem/Sentence_Transformers/bioelectra/cross_encoder_bioelectra_2_class/finetuned_snomed_exact_matches_4484/evaluated_cardio/2023-01-22_17-30-46'
+  base_model_name: 'cross_encoder_bioelectra'
+  base: bioelectra
+  num_labels: 2
+  pretrained_on: pubmed_pmc
+  fine_tuned_on:
+    - snomed_contra_dataset_exact_matches_4484

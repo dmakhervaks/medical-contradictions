@@ -1,0 +1,8 @@
+model_info:
+  model_api_path: '/home/davem/Sentence_Transformers/important_models/cross_encoder_bioelectra_finetuned_snomed_exact_m_f_4206'
+  base_model_name: 'cross_encoder_bioelectra'
+  base: bioelectra
+  num_labels: 2
+  pretrained_on: pubmed_pmc
+  fine_tuned_on:
+    - snomed_contra_dataset_exact_matches_m_f_4206

@@ -1,8 +1,0 @@
-model_info:
-  model_api_path: '/home/davem/Sentence_Transformers/important_models/cross_encoder_distilroberta_finetuned_snomed_non_exact_4701'
-  base_model_name: 'cross_encoder_distilroberta'
-  base: distilroberta
-  num_labels: 2
-  pretrained_on: open_web_text
-  fine_tuned_on:
-    - snomed_contra_dataset_non_exact_matches_4701

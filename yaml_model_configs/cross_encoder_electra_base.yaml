@@ -1,0 +1,8 @@
+model_info:
+  model_api_path: 'google/electra-base-discriminator'
+  base_model_name: 'cross_encoder_electra_base'
+  base: electra_base
+  num_labels: 2
+  pretrained_on: wikipedia_plus
+  batch_size: 8
+  fine_tuned_on:
