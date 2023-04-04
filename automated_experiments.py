@@ -143,15 +143,30 @@ def train_all_models(eval_datasets = ["cardio"], rel_datasets = [], train_sample
             'cross_encoder_electra_base.yaml',
             'cross_encoder_bert_base.yaml'
             ]
+    
+    models = ['cross_encoder_electra_base.yaml',
+            'cross_encoder_bert_base.yaml'
+            ]
+    
+    models = ['cross_encoder_biolinkbert_base.yaml',
+              'cross_encoder_pubmedbert_base.yaml']
+    
+    models = ['cross_encoder_biolinkbert_large.yaml',
+              'cross_encoder_pubmedbert_large.yaml']
+    
+    models = ['cross_encoder_biogpt.yaml']
 
-    # models = ['cross_encoder_bert_small.yaml'
-    #         ]
+    if sota:
+        models = ['cross_encoder_bert_small.yaml'
+                ]
 
     # models = ['cross_encoder_electra_base.yaml',
     #         'cross_encoder_bert_base.yaml',
     #         ]
 
     train_on_addtl = [False,True]
+    # train_on_addtl = [False]
+
     # train_on_addtl = [True]
     for model in models:
         model_info = load_model_info(model)
@@ -247,8 +262,22 @@ if __name__ == "__main__":
     # eval_datasets = ["mednli_endocrinology"]
     # rel_datasets = ["All_C35_G25_WN_N10_SN","Endocrinology_C35_G25_WN_N10_SN","Cardio_C35_G25_WN_N10_SN"]
 
-    eval_datasets = ["mednli_obstetrics"]
-    rel_datasets = ["All_C35_G25_WN_N10_SN","Obstetrics_C35_G25_WN_N10_SN","Cardio_C35_G25_WN_N10_SN"]
+    eval_datasets = ["mednli_100",
+                     "mednli_cardio_100", 
+                     "mednli_surgery_100", 
+                     "mednli_endocrinology_100",
+                     "mednli_female_reproductive_100",
+                     "mednli_obstetrics_100"]
+
+    # eval_datasets = ["cardio",
+    #                  "positive_cardio"]
+    
+
+    # rel_datasets = ["Cardio_M0_G25_WN_N10_SN","Cardio_M35_G25_WN_N10_SN",
+    #                 "Cardio_C35_G6_WN_N10_SN","Cardio_C35_G6_WN_N25_SN","Cardio_C35_G6_WN_N50_SN",
+    #                 "Cardio_C35_G12_WN_N10_SN","Cardio_C35_G12_WN_N25_SN","Cardio_C35_G12_WN_N50_SN",
+    #                 "Cardio_C35_G25_WN_N25_SN",
+    #                 "Cardio_C35_G50_WN_N10_SN","Cardio_C35_G50_WN_N25_SN","Cardio_C35_G50_WN_N50_SN"]
 
     # eval_datasets = ["positive_cardio"]
     # eval_datasets = ["mednli"]
@@ -327,6 +356,9 @@ if __name__ == "__main__":
 
     # rel_datasets = ["Cardio_C35_G25_WN_N50_SN","Cardio_C35_G25_WN_N10_SN"]
 
+    # rel_datasets = ["Cardio_C35_G25_WN_N10_SN"]
+    rel_datasets = ["All_C35_G25_WN_N10_SN"]
+
     # rel_datasets = ["All_C35_G25_WN_N10_SN"]
     # rel_datasets = ["Cardio_C35_G25_WN_N10_SN"]
     # rel_datasets = ["Cardio_C35_G25_WN_N50_SN"]
@@ -372,6 +404,7 @@ if __name__ == "__main__":
     #                 "Cardio_M0_GALL_WN_N50_SN"]
 
     # train_all_models_zipped_train_test(zip(eval_datasets, rel_datasets), train_samples_sizes=[-1])
-    train_all_models(eval_datasets, rel_datasets, train_samples_sizes=[100,-1])
+    train_all_models(eval_datasets, rel_datasets, train_samples_sizes=[-1], sota=False)
         # python training_nli_cross_encoder.py --yaml cross_encoder_distilroberta.yaml --train_data snomed_contra_dataset_exact_matches_311 --eval_data cardio  --eval --train --train_batch_size 16 --eval_batch_size 32 --eval_steps 50 --metric roc_auc
         # python training_nli_cross_encoder.py --yaml cross_encoder_bioelectra.yaml --train_data however_moreover --eval_data mednli  --eval --train --train_batch_size 8 --eval_batch_size 32 --eval_steps 10000 --metric roc_auc --save
+        

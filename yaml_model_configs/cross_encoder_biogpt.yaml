@@ -1,0 +1,8 @@
+model_info:
+  model_api_path: 'microsoft/biogpt'
+  base_model_name: 'cross_encoder_biogpt'
+  base: biogpt
+  num_labels: 2
+  pretrained_on: pubmed_abstract
+  batch_size: 2
+  fine_tuned_on:
