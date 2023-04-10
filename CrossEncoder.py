@@ -14,7 +14,7 @@ from sentence_transformers.evaluation import SentenceEvaluator
 import wandb
 import numpy as np
 from plotting import plot_roc
-from GPTSequenceClassifier import GPTSequenceClassifier
+from GPTSequenceClassifier import BioGptForSequenceClassification
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class CrossEncoder():
             self.config.num_labels = num_labels
 
         if "gpt" in model_name.lower():
-            self.model = GPTSequenceClassifier.from_pretrained(model_name,num_labels=num_labels)
+            self.model = BioGptForSequenceClassification.from_pretrained(model_name,num_labels=num_labels)
         else:
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config, **automodel_args)
 
@@ -210,16 +210,7 @@ class CrossEncoder():
 
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
-                    # if isinstance(self.model, GPTSequenceClassifier):
-                    #     logits = self.model(**features)
-                    # else:
-                    #     model_predictions = self.model(**features, return_dict=True)
-                    #     logits = activation_fct(model_predictions.logits)
-                    print(features)
-                    print()
                     model_predictions = self.model(**features, return_dict=True)
-                    print(model_predictions)
-                    assert False
                     logits = activation_fct(model_predictions.logits)
 
                     if self.config.num_labels == 1:
@@ -298,11 +289,6 @@ class CrossEncoder():
         self.model.to(self._target_device)
         with torch.no_grad():
             for features in iterator:
-                # if isinstance(self.model, GPTSequenceClassifier):
-                #     logits = self.model(**features)
-                # else:
-                #     model_predictions = self.model(**features, return_dict=True)
-                #     logits = activation_fct(model_predictions.logits)
                 model_predictions = self.model(**features, return_dict=True)
                 logits = activation_fct(model_predictions.logits)
 

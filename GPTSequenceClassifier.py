@@ -1,58 +1,76 @@
 import torch
 import torch.nn as nn
-from transformers import AutoTokenizer, BioGptModel, AutoModel, AutoModelForSequenceClassification, AutoConfig
+from transformers import AutoTokenizer, BioGptModel, AutoModel, AutoModelForSequenceClassification, AutoConfig, BioGptConfig, BioGptPreTrainedModel
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
-from transformers.modeling_outputs import SequenceClassifierOutput
+from transformers.modeling_outputs import SequenceClassifierOutput, TokenClassifierOutput
+from transformers.utils import add_code_sample_docstrings,add_start_docstrings_to_model_forward
 from typing import Optional, Tuple, Union
 import os
 import json
 
-# class GPTSequenceClassifier(BioGptModel):
-#     def __init__(self, gpt_model_name, num_classes):
-#         config = AutoConfig.from_pretrained(gpt_model_name, num_labels=num_classes)
-#         print(config)
-#         super().__init__(config)
-#         # self.gpt_model = AutoModel.from_pretrained(gpt_model_name)
-#         # self.classifier = nn.Linear(self.model.config.hidden_size, num_classes)
-#         self.classifier = nn.Linear(config.hidden_size, num_classes)
+_CHECKPOINT_FOR_DOC = "microsoft/biogpt"
+_CONFIG_FOR_DOC = "BioGptConfig"
 
-#         # self.init_weights()
-    
-#     def forward(self, input_ids, attention_mask=None):
-#         # outputs = self.gpt_model(input_ids, attention_mask=attention_mask)
-#         outputs = super().forward(input_ids, attention_mask=attention_mask)
-#         pooled_output = outputs[0][:, 0, :]  # take only the pooled output of the last layer
-#         logits = self.classifier(pooled_output)
+BIOGPT_INPUTS_DOCSTRING = r"""
+    Args:
+        input_ids (`torch.LongTensor` of shape `({0})`):
+            Indices of input sequence tokens in the vocabulary.
+            Indices can be obtained using [`AutoTokenizer`]. See [`PreTrainedTokenizer.encode`] and
+            [`PreTrainedTokenizer.__call__`] for details.
+            [What are input IDs?](../glossary#input-ids)
+        attention_mask (`torch.FloatTensor` of shape `({0})`, *optional*):
+            Mask to avoid performing attention on padding token indices. Mask values selected in `[0, 1]`:
+            - 1 for tokens that are **not masked**,
+            - 0 for tokens that are **masked**.
+            [What are attention masks?](../glossary#attention-mask)
+        head_mask (`torch.FloatTensor` of shape `(num_heads,)` or `(num_layers, num_heads)`, *optional*):
+            Mask to nullify selected heads of the self-attention modules. Mask values selected in `[0, 1]`:
+            - 1 indicates the head is **not masked**,
+            - 0 indicates the head is **masked**.
+        inputs_embeds (`torch.FloatTensor` of shape `({0}, hidden_size)`, *optional*):
+            Optionally, instead of passing `input_ids` you can choose to directly pass an embedded representation. This
+            is useful if you want more control over how to convert *input_ids* indices into associated vectors than the
+            model's internal embedding lookup matrix.
+        past_key_values (`tuple(tuple(torch.FloatTensor))`, *optional*, returned when `use_cache=True` is passed or when `config.use_cache=True`):
+            Tuple of `tuple(torch.FloatTensor)` of length `config.n_layers`, with each tuple having 2 tensors of shape
+            `(batch_size, num_heads, sequence_length, embed_size_per_head)`) and 2 additional tensors of shape
+            `(batch_size, num_heads, encoder_sequence_length, embed_size_per_head)`.
+            Contains pre-computed hidden-states (key and values in the self-attention blocks and in the cross-attention
+            blocks) that can be used (see `past_key_values` input) to speed up sequential decoding.
+            If `past_key_values` are used, the user can optionally input only the last `decoder_input_ids` (those that
+            don't have their past key value states given to this model) of shape `(batch_size, 1)` instead of all
+            `decoder_input_ids` of shape `(batch_size, sequence_length)`. inputs_embeds (`torch.FloatTensor` of shape
+            `(batch_size, sequence_length, hidden_size)`, *optional*): Optionally, instead of passing `input_ids` you
+            can choose to directly pass an embedded representation. This is useful if you want more control over how to
+            convert `input_ids` indices into associated vectors than the model's internal embedding lookup matrix.
+        use_cache (`bool`, *optional*):
+            If set to `True`, `past_key_values` key value states are returned and can be used to speed up decoding (see
+            `past_key_values`).
+        output_attentions (`bool`, *optional*):
+            Whether or not to return the attentions tensors of all attention layers. See `attentions` under returned
+            tensors for more detail.
+        output_hidden_states (`bool`, *optional*):
+            Whether or not to return the hidden states of all layers. See `hidden_states` under returned tensors for
+            more detail.
+        return_dict (`bool`, *optional*):
+            Whether or not to return a [`~utils.ModelOutput`] instead of a plain tuple.
+"""
 
-#         return logits
-    
-#     # def save_pretrained(self, path):
-#     #     print(path)
-#     #     # Save the model configuration
-#     #     config_path = os.path.join(path,"config.json")
-#     #     with open(config_path, "w") as f:
-#     #         json.dump(self.config.to_dict(), f)
-
-#     #     # Save the model weights
-#     #     weights_path = os.path.join(path, "pytorch_model.bin")
-#     #     torch.save(self.state_dict(), weights_path)
-
-class GPTSequenceClassifier(BioGptModel):
+class BioGptForSequenceClassification(BioGptPreTrainedModel):    
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.transformer = BioGptModel(config)
+        self.biogpt = BioGptModel(config)
         self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
-
         # Initialize weights and apply final processing
         self.post_init()
 
-    # @add_start_docstrings_to_model_forward(OPENAI_GPT_INPUTS_DOCSTRING)
-    # @add_code_sample_docstrings(
-    #     checkpoint=_CHECKPOINT_FOR_DOC,
-    #     output_type=SequenceClassifierOutput,
-    #     config_class=_CONFIG_FOR_DOC,
-    # )
+    @add_start_docstrings_to_model_forward(BIOGPT_INPUTS_DOCSTRING)
+    @add_code_sample_docstrings(
+        checkpoint=_CHECKPOINT_FOR_DOC,
+        output_type=SequenceClassifierOutput,
+        config_class=_CONFIG_FOR_DOC,
+    )
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,
@@ -74,19 +92,7 @@ class GPTSequenceClassifier(BioGptModel):
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        # transformer_outputs = self.transformer(
-        #     input_ids,
-        #     attention_mask=attention_mask,
-        #     token_type_ids=token_type_ids,
-        #     position_ids=position_ids,
-        #     head_mask=head_mask,
-        #     inputs_embeds=inputs_embeds,
-        #     output_attentions=output_attentions,
-        #     output_hidden_states=output_hidden_states,
-        #     return_dict=return_dict,
-        # )
-        # TODO: check if token type ids exist when BERT runs
-        transformer_outputs = self.transformer(
+        transformer_outputs = self.biogpt(
             input_ids,
             attention_mask=attention_mask,
             head_mask=head_mask,
