@@ -36,6 +36,22 @@ class Datasets(Enum):
     mednli_immuno =  {'data_path':'data/MedNLI_Immuno.tsv.gz','metric':'accuracy','num_labels':3}
 
 
+    # *********************
+
+    # 100 train-sample subsets of mednli
+    
+    mednli_100 =  {'data_path':'data/MedNLI_Cardio_100.tsv.gz','metric':'accuracy','num_labels':3}
+
+    mednli_cardio_100 =  {'data_path':'data/MedNLI_Cardio_100.tsv.gz','metric':'accuracy','num_labels':3}
+
+    mednli_surgery_100 =  {'data_path':'data/MedNLI_Surgery_100.tsv.gz','metric':'accuracy','num_labels':3}
+
+    mednli_endocrinology_100 =  {'data_path':'data/MedNLI_Endocrinology_100.tsv.gz','metric':'accuracy','num_labels':3}
+
+    mednli_female_reproductive_100 =  {'data_path':'data/MedNLI_Female_Reproductive_100.tsv.gz','metric':'accuracy','num_labels':3}
+
+    mednli_obstetrics_100 =  {'data_path':'data/MedNLI_Obstetrics_100.tsv.gz','metric':'accuracy','num_labels':3}
+
     # inter_cardio
 
     mednli_surgery_inter_cardio =  {'data_path':'data/MedNLI_Surgery_inter_Cardio.tsv.gz','metric':'accuracy','num_labels':3}
@@ -325,3 +341,8 @@ class Datasets(Enum):
     Urinary_C35_G25_WN_N10_SN = {'data_path':'data/Urinary_C35_G25_WN_N10_SN.tsv.gz','metric':'accuracy','num_labels':2}
     Female_Reproductive_C35_G25_WN_N10_SN = {'data_path':'data/Female_Reproductive_C35_G25_WN_N10_SN.tsv.gz','metric':'accuracy','num_labels':2}
     Obstetrics_C35_G25_WN_N10_SN = {'data_path':'data/Obstetrics_C35_G25_WN_N10_SN.tsv.gz','metric':'accuracy','num_labels':2}
+
+
+
+    #**********************
+    SNOMED_Phrase_Pairs_L3_R8 = {'data_path':'data/SNOMED_Phrase_Pairs_L3_R8.tsv.gz','metric':'accuracy','num_labels':2}

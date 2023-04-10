@@ -1,4 +1,7 @@
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig, AutoModel
 import numpy as np
 import logging
 import os
@@ -14,28 +17,66 @@ from sentence_transformers.evaluation import SentenceEvaluator
 import wandb
 import numpy as np
 from plotting import plot_roc
-from GPTSequenceClassifier import BioGptForSequenceClassification
 
 logger = logging.getLogger(__name__)
+class SotaNet(nn.Module):
+    def __init__(self, model_name ,config, automodel_args:Dict = {}):
+      super(SotaNet, self).__init__()
+    #   device = "cuda" if torch.cuda.is_available() else "cpu"
+    #   logger.info("Use pytorch device: {}".format(device))
+
+    #   self._target_device = torch.device(device)
+      self.base_model = AutoModel.from_pretrained(model_name,config=config, **automodel_args)
+    #   for param in self.base_model.parameters():
+    #         param.requires_grad = False
+      hidden_size = self.base_model.config.hidden_size
+    #   self.base_model.to(self._target_device)
+      self.config = config
+      # with an input probability
+      self.dropout1 = nn.Dropout(0.3)
+      self.dropout2 = nn.Dropout(0.3)
+      self.dropout3 = nn.Dropout(0.3)
+
+      self.fc0 = nn.Linear(hidden_size*2, 2048)
+      # First fully connected layer
+      self.fc1 = nn.Linear(2048, 1024)
+      # Second fully connected layer that outputs our 10 labels
+      self.fc2 = nn.Linear(1024, 512)
+
+      self.fc3 = nn.Linear(512, 2)
 
 
-class CrossEncoder():
+    # x represents our data
+    def forward(self, a,b):
+      a = self.base_model(**a)
+      b = self.base_model(**b)
+
+      x = torch.cat((a.pooler_output,b.pooler_output), 1)
+
+      x = self.fc0(x)
+      x = self.dropout1(x)
+      x = F.relu(x)
+
+      x = self.fc1(x)
+      x = self.dropout2(x)
+      x = F.relu(x)
+
+      x = self.fc2(x)
+      x = self.dropout3(x)
+      x = F.relu(x)
+
+      x = self.fc3(x)
+
+      # Apply softmax to x
+    #   output = F.log_softmax(x, dim=1)
+      return x
+
+
+class ModifiedCrossEncoder():
     def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {},
-                  automodel_args:Dict = {}, default_activation_function = None):
-        """
-        A CrossEncoder takes exactly two sentences / texts as input and either predicts
-        a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
-        on a scale of 0 ... 1.
-        It does not yield a sentence embedding and does not work for individually sentences.
-        :param model_name: Any model name from Huggingface Models Repository that can be loaded with AutoModel. We provide several pre-trained CrossEncoder models that can be used for common tasks
-        :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that outputs a continous score 0...1. If > 1, it output several scores that can be soft-maxed to get probability scores for the different classes.
-        :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max length of the model will be used
-        :param device: Device that should be used for the model. If None, it will use CUDA if available.
-        :param tokenizer_args: Arguments passed to AutoTokenizer
-        :param automodel_args: Arguments passed to AutoModelForSequenceClassification
-        :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1, else nn.Identity()
-        """
+                  automodel_args:Dict = {}, default_activation_function = None, saved_path=None):
 
+        print(model_name)
         self.config = AutoConfig.from_pretrained(model_name)
         classifier_trained = True
         if self.config.architectures is not None:
@@ -47,10 +88,11 @@ class CrossEncoder():
         if num_labels is not None:
             self.config.num_labels = num_labels
 
-        if "gpt" in model_name.lower():
-            self.model = BioGptForSequenceClassification.from_pretrained(model_name,num_labels=num_labels)
-        else:
-            self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config, **automodel_args)
+        # self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config, **automodel_args)
+        # self.tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_args)
+        self.model = SotaNet(model_name, config=self.config,**automodel_args)
+        if saved_path is not None:
+            self.model.load_state_dict(torch.load(saved_path+"/pytorch_model.pt"))
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_args)
         self.max_length = max_length
@@ -77,23 +119,31 @@ class CrossEncoder():
         texts = [[] for _ in range(len(batch[0].texts))]
         labels = []
 
+        max_0 = 0
+        max_1 = 0
         for example in batch:
             for idx, text in enumerate(example.texts):
                 texts[idx].append(text.strip())
-
+                if len(text.split(" ")) > max_0 and idx == 0:
+                    max_0 = len(text.split(" "))
+                elif len(text.split(" ")) > max_1 and idx == 1:
+                    max_1 = len(text.split(" "))
             labels.append(example.label)
 
+        assert len(texts) == 2
         # tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
-        tokenized = self.tokenizer(*texts, padding=True, truncation=True, return_tensors="pt", max_length=512)
-
-        # decoded_embedding = self.tokenizer.decode(tokenized["input_ids"][0])
+        tokenized_0 = self.tokenizer(texts[0], padding=True, truncation=True, return_tensors="pt", max_length=512)
+        tokenized_1 = self.tokenizer(texts[1], padding=True, truncation=True, return_tensors="pt", max_length=512)
 
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
 
-        for name in tokenized:
-            tokenized[name] = tokenized[name].to(self._target_device)
+        for name in tokenized_0:
+            tokenized_0[name] = tokenized_0[name].to(self._target_device)
 
-        return tokenized, labels
+        for name in tokenized_1:
+            tokenized_1[name] = tokenized_1[name].to(self._target_device)
+
+        return tokenized_0, tokenized_1, labels
 
     def smart_batching_collate_text_only(self, batch):
         texts = [[] for _ in range(len(batch[0]))]
@@ -102,12 +152,16 @@ class CrossEncoder():
             for idx, text in enumerate(example):
                 texts[idx].append(text.strip())
 
-        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
+        tokenized_0 = self.tokenizer(texts[0], padding=True, truncation=True, return_tensors="pt", max_length=512)
+        tokenized_1 = self.tokenizer(texts[1], padding=True, truncation=True, return_tensors="pt", max_length=512)
 
-        for name in tokenized:
-            tokenized[name] = tokenized[name].to(self._target_device)
+        for name in tokenized_0:
+            tokenized_0[name] = tokenized_0[name].to(self._target_device)
 
-        return tokenized
+        for name in tokenized_1:
+            tokenized_1[name] = tokenized_1[name].to(self._target_device)
+
+        return tokenized_0, tokenized_1
 
     def fit(self,
             train_dataloader: DataLoader,
@@ -128,31 +182,6 @@ class CrossEncoder():
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True
             ):
-        """
-        Train the model with the given training objective
-        Each training objective is sampled in turn for one batch.
-        We sample only as many batches from each objective as there are in the smallest one
-        to make sure of equal training with each dataset.
-        :param train_dataloader: DataLoader with training InputExamples
-        :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
-        :param epochs: Number of epochs for training
-        :param loss_fct: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-        :param activation_fct: Activation function applied on top of logits output of model.
-        :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
-        :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
-        :param optimizer_class: Optimizer
-        :param optimizer_params: Optimizer parameters
-        :param weight_decay: Weight decay for model parameters
-        :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
-        :param output_path: Storage path for the model and evaluation files
-        :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
-        :param max_grad_norm: Used for gradient normalization.
-        :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
-        :param callback: Callback function that is invoked after each evaluation.
-                It must accept the following three parameters in this order:
-                `score`, `epoch`, `steps`
-        :param show_progress_bar: If True, output a tqdm progress bar
-        """
         train_dataloader.collate_fn = self.smart_batching_collate
 
         if use_amp:
@@ -192,11 +221,11 @@ class CrossEncoder():
             self.model.zero_grad()
             self.model.train()
 
-            for features, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            for features_0, features_1, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 if use_amp:
                     with autocast():
-                        model_predictions = self.model(**features, return_dict=True)
-                        logits = activation_fct(model_predictions.logits)
+                        model_predictions = self.model(features_0, features_1)
+                        logits = activation_fct(model_predictions)
                         if self.config.num_labels == 1:
                             logits = logits.view(-1)
                         loss_value = loss_fct(logits, labels)
@@ -210,12 +239,11 @@ class CrossEncoder():
 
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
-                    model_predictions = self.model(**features, return_dict=True)
-                    logits = activation_fct(model_predictions.logits)
-
+                    model_predictions = self.model(features_0,features_1)
+                    logits = activation_fct(model_predictions)
+                    
                     if self.config.num_labels == 1:
                         logits = logits.view(-1)
-
                     loss_value = loss_fct(logits, labels)
                     running_loss.append(loss_value.item())
                     loss_value.backward()
@@ -288,9 +316,9 @@ class CrossEncoder():
         self.model.eval()
         self.model.to(self._target_device)
         with torch.no_grad():
-            for features in iterator:
-                model_predictions = self.model(**features, return_dict=True)
-                logits = activation_fct(model_predictions.logits)
+            for features_0, features_1 in iterator:
+                model_predictions = self.model(features_0,features_1)
+                logits = activation_fct(model_predictions)
 
                 if apply_softmax and len(logits[0]) > 1:
                     logits = torch.nn.functional.softmax(logits, dim=1)
@@ -337,8 +365,8 @@ class CrossEncoder():
             return
 
         logger.info("Save model to {}".format(path))
-        self.model.save_pretrained(path)
         self.tokenizer.save_pretrained(path)
+        torch.save(self.model.state_dict(), path+"/pytorch_model.pt")
 
     def save_pretrained(self, path):
         """
