@@ -1,6 +1,6 @@
 model_info:
   model_api_path: 'michiyasunaga/BioLinkBERT-large'
-  base_model_name: 'michiyasunaga/BioLinkBERT-large'
+  base_model_name: 'cross_encoder_biolinkbert_large'
   base: biolinkbert_large
   num_labels: 2
   pretrained_on: pubmed_pmc_links
