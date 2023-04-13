@@ -1,3 +1,4 @@
+import argparse
 import os
 import nltk
 from nltk.corpus import stopwords
@@ -68,7 +69,7 @@ def check_if_phrases_are_redundant(phrases):
 """
 Returns statistics about how often certain phrases occur
 """
-def get_statistics_about_data(base_path, version, map=None):
+def get_statistics_about_data(base_path):
     phrase_to_frequency_dict = {}
     curr_file_name = base_path+"/all_files.tsv"
 
@@ -76,8 +77,7 @@ def get_statistics_about_data(base_path, version, map=None):
         lines = f.readlines()
         dict_of_mults = {}
         for line in lines:
-
-            # sent, phrases = [x.strip() for x in line.split("\t")]
+            sent,pmid,title,mesh_headings,keywords,phrases = [x.strip() for x in line.split("\t")]
             phrases = set([x.strip() for x in phrases.split(",")])
 
             # exclude sentences with extra phrases, or could include them if the same label, but then must choose a "representative phrase"
@@ -93,9 +93,6 @@ def get_statistics_about_data(base_path, version, map=None):
             phrases_list = check_if_phrases_are_redundant(phrases)
 
             for phrase in phrases_list:
-                if version == 2 and map is not None:
-                    phrase = map[phrase]
-
                 if phrase in phrase_to_frequency_dict:
                     phrase_to_frequency_dict[phrase]+=1
                 else:
@@ -104,6 +101,7 @@ def get_statistics_about_data(base_path, version, map=None):
     print(f"Len of mults: {len(dict_of_mults)}")
 
     return phrase_to_frequency_dict, dict_of_mults
+
 
 def get_phrase_mapping(map_file_name):
     phrase_mapping = {}
@@ -178,50 +176,23 @@ def get_plia_labeled_phrases():
 """
 Returns the list of phrase-pairs and their corresponding labels
 """
-def populated_no_num_snomed_phrase_pairs(keep_numbers=False, group_number=None):
+def populated_no_num_snomed_phrase_pairs(keep_numbers=False):
     list_of_phrase_pairs = []
     phrase_pairs_to_label = {}
     labels = []
     mapping = {"1":"contradiction", "0":"non-contradiction"}
-    pairs_path = "generated_contradicting_pairs_shuffled.csv"
-    # pairs_path = "generated_contradicting_pairs_shuffled_all_under_12.csv"
-    # pairs_path = "/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/generated_contradicting_pairs_shuffled_all_cardio_scratch.csv"
-    # # pairs_path = "/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/generated_contradicting_pairs_shuffled_non_exact_all_cardio_777_scratch.csv"
-    # pairs_path = "/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/generated_contradicting_pairs_shuffled_exact_all_cardio_445_scratch.csv"
-    # pairs_path = "/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/generated_contradicting_pairs_shuffled_exact_cardio_under_25_not_sampled_scratch.csv"
-    # pairs_path = "/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/generated_contradicting_pairs_shuffled_exact_cardio_under_25_scratch.csv"
-    # pairs_path = f"/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/auto_labeled_snomed_pairs/cardio_g{group_number}.csv"
-    pairs_path = f"/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/auto_labeled_snomed_pairs/all_g{group_number}.csv"
-    # pairs_path = f"/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/auto_labeled_snomed_pairs/surgery_g{group_number}.csv"
-    # pairs_path = f"/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/auto_labeled_snomed_pairs/endocrinology_g{group_number}.csv"
-    # pairs_path = f"/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/auto_labeled_snomed_pairs/female_reproductive_g{group_number}.csv"
-    # pairs_path = f"/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/auto_labeled_snomed_pairs/immuno_g{group_number}.csv"
-    # pairs_path = f"/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/auto_labeled_snomed_pairs/urinary_g{group_number}.csv"
-    # pairs_path = f"/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/auto_labeled_snomed_pairs/obstetrics_g{group_number}.csv"
+    pairs_path = f"snomed_pairs_auto_labeled.csv"
 
     problem_count=0
     with open (pairs_path,"r") as f:
-        # TODO: change between the two if you want 
-        # with open("heuristic_predicted_labels.tsv", "r") as fh:
-        # with open("heuristic_predicted_labels_all_under_12.tsv", "r") as fh:
-        # with open("heuristic_predicted_labels_all_cardio.csv", "r") as fh:
         lines = f.readlines()
-            # preds = fh.readlines()
-
-            # preds = linesf
-        # for (line,pred) in zip(lines[1:],preds[1:]):
         for line in lines[1:]:
             _, phrase1,_, phrase2,label = [x.strip().lower() for x in line.split(",")]
                                 
             word_tokens_1 = phrase1.split(" ")
             word_tokens_2 = phrase2.split(" ")
-            
             contains_full_num = False
 
-            # phrase1_p, phrase2_p, label = [x.strip().lower() for x in pred.split("\t")]
-            # assert phrase1_p == phrase1 and phrase2_p == phrase2
-
-            # TODO: sometimes do need to keep numbers...
             for word in word_tokens_1:
                 if '+' in word:
                     contains_full_num = True
@@ -339,18 +310,14 @@ def create_sampled_dataset(dict_of_contradictions, dict_of_non_contradictions, r
     return list_of_contradictions, list_of_non_contradictions
 
 
-def get_dict_of_phrases_to_sentences(base_path, version, phrase_to_frequency_dict, map=None):
+def get_dict_of_phrases_to_sentences(base_path):
     curr_file_name = base_path+"/all_files.tsv" 
 
     dict_of_phrases_to_sentences = {}
     set_of_various_mesh_headings = set()
-    print("reading in lines")
     with open(curr_file_name, "r") as f:
         lines = f.readlines()
-        print("read in the lines")
         for i,line in enumerate(lines):
-            if i %10000 == 0:
-                print(i)
             sent,pmid,title,mesh_headings,keywords,phrases = [x.strip() for x in line.split("\t")]
             # sent, phrases = [x.strip() for x in line.split("\t")]
             phrases = phrases.split(",")
@@ -363,9 +330,6 @@ def get_dict_of_phrases_to_sentences(base_path, version, phrase_to_frequency_dic
             phrases_list = check_if_phrases_are_redundant(phrases)
 
             for phrase in phrases_list:
-                if version == 2 and map is not None:
-                    phrase = map[phrase]
-
                 if phrase in dict_of_phrases_to_sentences:
                     dict_of_phrases_to_sentences[phrase].append((sent,pmid,mesh_headings_tuple))
                 else:
@@ -373,39 +337,16 @@ def get_dict_of_phrases_to_sentences(base_path, version, phrase_to_frequency_dic
 
             set_of_various_mesh_headings.add(mesh_headings_tuple)
 
-    # sanity check
-    # doesn't have to be true anymore....
-    print("set_of_various_mesh_headings")
-    print(len(set_of_various_mesh_headings))
-    print(len(dict_of_phrases_to_sentences),len(phrase_to_frequency_dict))
-    assert len(dict_of_phrases_to_sentences) == len(phrase_to_frequency_dict)
-    # TODO: DAVE SUCKS
-    # for phrase in phrase_to_frequency_dict:
-    #     assert phrase_to_frequency_dict[phrase] == len(dict_of_phrases_to_sentences[phrase])
-
     return dict_of_phrases_to_sentences 
 
 
-def determine_if_sentences_have_valid_relationship(phrase1, sentence1, pmid1, mesh_headings1, phrase2, sentence2, pmid2, mesh_headings2):
-    
-    # TODO: maybe wan/t to also do a ratio situation
-    # union = set(mesh_headings1).union(set(mesh_headings2))
-    # intersection = set(mesh_headings1).intersection(set(mesh_headings2))
-    # min_len_set = min(len(set(mesh_headings1)), len(set(mesh_headings2)))
-    # if len(intersection) <= 1:
-    #     return False
-    # elif len(intersection)/min_len_set < 0.35:
-    #     return False
-    # else:
-    #     return True
+def determine_if_sentences_have_valid_relationship(phrase1, sentence1, pmid1, mesh_headings1, phrase2, sentence2, pmid2, mesh_headings2, thresh):
 
     cosine_sim = basic_cosine_similarity(sentence1,sentence2)
-    if cosine_sim > 0.35:
+    if cosine_sim > thresh:
         return True
     else:
         return False
-
-
 
 
 def basic_cosine_similarity(sent1,sent2):
@@ -444,50 +385,30 @@ phrase_to_frequency_dict: mapping phrases to num of times they appear
 represented_phrase_pair_counts: mapping phrase-pairs to num of times they appear
 TODO: map?
 """
-def create_dataset_of_potentially_contradictory_sentences(base_path, version, phrase_to_frequency_dict, represented_phrase_pair_counts, dict_of_mults, phrase_pairs_to_label, map=None, sample_number=50, use_mesh=False, group_number=None):
+def create_dataset_of_potentially_contradictory_sentences(base_path, represented_phrase_pair_counts, thresh, sample_number=50, use_mesh=False):
     curr_file_name = base_path+"/all_files.tsv" 
-    # new_file_name = base_path+f"/contradictory_dataset_{sample_number}.tsv"
-    # new_file_name = base_path+f"/Cardio_M35_G{group_number}_WN_N{sample_number}_SN.tsv"
-    new_file_name = base_path+f"/All_C35_G{group_number}_WN_N{sample_number}_SN.tsv"
+    new_file_name = base_path+f"/SNOMED_dataset.tsv"
 
     total_mesh_terms = set()
 
     # labels - {"contradiction","non-contradiction"}
-
     # {lowercased phrase:[sentence1, sentence2, ...]}
     dict_of_phrases_to_sentences = {}
     split = "train"
-    dataset = f"snomed_cardio_contra_corpus_v{version}"
-    contra_count = 0
-    non_contra_count = 0
-    # terms_without_mesh = 0
-    # terms_with_mesh = 0
-    #   adhering to Sentence Transformer library format
-    
-    dict_of_phrases_to_sentences = get_dict_of_phrases_to_sentences(base_path, version, phrase_to_frequency_dict, map=map)
-    print(len(dict_of_phrases_to_sentences))
-    print(sum([len(x) for _,x in dict_of_phrases_to_sentences.items()]))
 
-    # for exact matches the max number of sentences for a phrase is 62
+    dict_of_phrases_to_sentences = get_dict_of_phrases_to_sentences(base_path)
+
     list_of_contradictions = []
     list_of_non_contradictions = []
 
-    dict_of_contradictions = {}
-    dict_of_non_contradictions = {}
-
     blunder_num = 0
-    used_sentences = set()
     
     number_of_pairs_actually_represented = set()
-    number_of_pairs_not_represented = 0
 
     used_sentence_pairs = set()
     total_unsucessful_pairs = 0
     total_succesful_pairs = 0
-    # loop through an already sorted list (sorted by counts).. the fact its sorted is not crucial actually
-    # dont want phrases equaling ofc
-    # also dont want sentences equaling
-    print("ABOUT TO START LOOPING")
+
     for idx, (phrase1,phrase2,_,label) in enumerate(represented_phrase_pair_counts):
         if phrase1 in dict_of_phrases_to_sentences and phrase2 in dict_of_phrases_to_sentences:    
             assert phrase1 != phrase2
@@ -500,20 +421,13 @@ def create_dataset_of_potentially_contradictory_sentences(base_path, version, ph
             # number of combos gets used here instead, so don't need it above
             num_combos = len(sentences1_set)*len(sentences2_set)
 
-            print(num_combos)
-            # iterations = min(num_combos, sample_number)
             iterations = num_combos
             curr_iter = 0
             success_sample_count = 0
             unsuccess_retry_count = 0 # in the case that we deal with MeSH terms, we may need to resample
             max_retries = 3000
             while curr_iter < iterations and unsuccess_retry_count < max_retries and success_sample_count < sample_number:
-            # while unsuccess_retry_count < max_retries and success_sample_count < sample_number:
-                print(curr_iter,unsuccess_retry_count,success_sample_count)
-                # TODO: only comment this code back in if want to have unique sentences...
-                # however since cardio sentences have repitions, not sure if this needs to be enforced
-                # sentences1_set -= used_sentences 
-                # sentences2_set -= used_sentences
+
                 if len(sentences1_set) <= 0 or len(sentences2_set) <= 0:
                     break
                 
@@ -537,16 +451,10 @@ def create_dataset_of_potentially_contradictory_sentences(base_path, version, ph
                 used_sentence_pairs.add((sentence1, sentence2))
                 used_sentence_pairs.add((sentence2, sentence1))
                 
-                # TODO: comment back in if want stricter requirement on uniqueness of sentences
-                # sentences1_set.remove(sentence1)
-                # sentences2_set.remove(sentence2)
-
-                # used_sentences.add(sentence1)
-                # used_sentences.add(sentence2)
                 valid_relation=True
                 
                 if use_mesh:
-                    valid_relation = determine_if_sentences_have_valid_relationship(phrase1, sentence1, pmid1, mesh_headings1, phrase2, sentence2, pmid2, mesh_headings2)
+                    valid_relation = determine_if_sentences_have_valid_relationship(phrase1, sentence1, pmid1, mesh_headings1, phrase2, sentence2, pmid2, mesh_headings2, thresh)
                 if valid_relation:
                     success_sample_count+=1
                     unsuccess_retry_count=0
@@ -564,44 +472,8 @@ def create_dataset_of_potentially_contradictory_sentences(base_path, version, ph
                 total_unsucessful_pairs+=1
             else:
                 total_succesful_pairs+=1
-    #         for sentence1 in sentences1:
-    #             for sentence2 in sentences2:
-    #                 # assert sentence1.strip() != sentence2.strip()
-
-    #                 # if in here, then that means that there are 2 phrases in the sentence which are different from each other
-    #                 # which are in the same sentence... don't want that
-    #                 if sentence1.strip() == sentence2.strip():
-    #                     continue
-
-    #                     blunder_num += 1
-    #                 if label == "contradiction":
-    #                     contra_count+=1
-    #                     if (phrase1,phrase2) in dict_of_contradictions:
-    #                         dict_of_contradictions[(phrase1,phrase2)].append((sentence1,sentence2))
-    #                     else:
-    #                         dict_of_contradictions[(phrase1,phrase2)] = [(sentence1,sentence2)]
-    #                 else:
-    #                     non_contra_count+=1
-    #                     if (phrase1,phrase2) in dict_of_non_contradictions:
-    #                         dict_of_non_contradictions[(phrase1,phrase2)].append((sentence1,sentence2))
-    #                     else:
-    #                         dict_of_non_contradictions[(phrase1,phrase2)] = [(sentence1,sentence2)]
-    # list_of_contradictions_prime, list_of_non_contradictions_prime = create_sampled_dataset(dict_of_contradictions, dict_of_non_contradictions, represented_phrase_pair_counts, sample_number)
-    print(f"number_of_pairs_actually_represented: {len(number_of_pairs_actually_represented)}")
-    print(f"number_of_pairs_not_represented: {number_of_pairs_not_represented}")
-    contra_len = len(list_of_contradictions)
-    non_contra_len =  len(list_of_non_contradictions)
-    print(contra_len+non_contra_len, (contra_len)/(contra_len+non_contra_len))
-    print(f"Len of contra: {len(list_of_contradictions)}")
-    print(f"Len of non-contra: {len(list_of_non_contradictions)}")
-    print(f"total_succesful_pairs: {total_succesful_pairs}")
-    print(f"total_unsucessful_pairs: {total_unsucessful_pairs}")
-
-    # print(f"Len of contra prime: {len(list_of_contradictions_prime)}")
-    # print(f"Len of non-contra prime: {len(list_of_non_contradictions_prime)}")
 
     all_instances = list_of_contradictions + list_of_non_contradictions
-    # all_instances_prime = list_of_contradictions_prime + list_of_non_contradictions_prime
 
     all_instances_set = {}
     all_instances_prime_set = set()
@@ -621,17 +493,6 @@ def create_dataset_of_potentially_contradictory_sentences(base_path, version, ph
         else:
             all_instances_set[sent2] = [(label,instance)]
 
-
-        # all_instances_set.add(sent1.strip())
-        # all_instances_set.add(sent2.strip())
-    
-    # for label, instance_prime in all_instances_prime:
-    #     sent1, sent2 = instance_prime
-    #     all_instances_prime_set.add(sent1.strip())
-    #     all_instances_prime_set.add(sent2.strip())
-    #     used_sentence_pairs_prime.add((sent1.strip(),sent2.strip()))
-    #     used_sentence_pairs_prime.add((sent2.strip(),sent1.strip()))
-
     print(f"all instances len: {len(all_instances)}")
     print(f"used_sentence_pairs len: {len(used_sentence_pairs)}")
     print(f"used_sentence_pairs len: {len(used_sentence_pairs_prime)}")
@@ -645,10 +506,9 @@ def create_dataset_of_potentially_contradictory_sentences(base_path, version, ph
         fw.write("\t".join(["split","dataset","filename","sentence1","sentence2","label"])+"\n")
         for label, instance in all_instances:
             sentence1,sentence2 = instance
-            fw.write("\t".join([split,dataset,curr_file_name,sentence1,sentence2,label])+"\n")
+            fw.write("\t".join([split,new_file_name,curr_file_name,sentence1,sentence2,label])+"\n")
             count+=1
 
-    print(count)
     return dict_of_phrases_to_sentences
 
 def evenly_class_sample_created_file(file):
@@ -678,12 +538,10 @@ def evenly_class_sample_created_file(file):
             fw.write(line)
 
 
-
-
-# {word: [[contra_list pairs], [non_contra_list pairs]]}
 """
 The goal is to even these out, by sampling randomly with replacement 
 to make the lists equal length
+{word: [[contra_list pairs], [non_contra_list pairs]]}
 """
 def even_out_phrase_distribution_via_words(word_to_phrase_pairs):
 
@@ -730,10 +588,7 @@ def handle_phrase_distribution(represented_phrase_pair_counts):
             word_counts[word][idx]+=1
             word_to_phrase_pairs[word][idx].append((p1,p2,-1,label))
 
-    print(len(word_to_phrase_pairs['wave'][0]),len(word_to_phrase_pairs['wave'][1]))
     new_represented_phrase_pairs = even_out_phrase_distribution_via_words(word_to_phrase_pairs)
-    print(len(word_to_phrase_pairs['wave'][0]),len(word_to_phrase_pairs['wave'][1]))
-    print(len(new_represented_phrase_pairs))
 
     new_word_to_phrase_pairs={}
     for phrase in new_represented_phrase_pairs:
@@ -751,8 +606,6 @@ def handle_phrase_distribution(represented_phrase_pair_counts):
             
             word_counts[word][idx]+=1
             new_word_to_phrase_pairs[word][idx].append((p1,p2,-1,label))
-
-    print(len(new_word_to_phrase_pairs['wave'][0]),len(new_word_to_phrase_pairs['wave'][1]))
 
     closer_to_even = 0
 
@@ -779,126 +632,20 @@ def handle_phrase_distribution(represented_phrase_pair_counts):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--thresh', dest='thresh', type=float, required=False, default=0.35, help='The threshold for filtering')
+    parser.add_argument('--num_samples', dest='num_samples', type=int, required=False, default=10, help='The number of samples')
+    parser.add_argument('--use_mesh', action='store_true')
+    args = parser.parse_args()
 
-    ONLY_SINGLE_PHRASES = False
-    VERSION = 0
+    base_path = "../pubmed/exact_match_snomed_phrases"
 
+    phrase_to_frequency_dict, dict_of_mults = get_statistics_about_data(base_path)
 
-    # evenly_class_sample_created_file("/home/davem/Sentence_Transformers/data/SNOMED_Contra_Dataset_Exact_Matches_4111.tsv")
-    
-    # base_path_1 = "exact_match_snomed_phrases"
-    # base_path_0 = "exact_matches_all_cardio"
-    base_path_0 = "exact_match_snomed_phrases"
-    base_path_1 = "out_of_order_match_snomed_phrases"
-    base_path_2 = "out_of_order_match_cleaned_snomed_phrases"
-    # base_path_3 = "non_exact_matches_clinical_trials_all_cardio"
-    base_path_3 = "non_exact_matches_all_cardio"
-    base_paths = [base_path_0,base_path_1,base_path_2,base_path_3]
+    list_of_phrase_pairs, labels, phrase_pairs_to_label = populated_no_num_snomed_phrase_pairs(keep_numbers=True)  
+    represented_phrase_pair_counts = get_represented_phrase_pair_counts(list_of_phrase_pairs, labels, phrase_to_frequency_dict)
 
-    base_path = base_paths[VERSION]
-
-    # set_of_all_snomed_phrases = populate_snomed_phrases("Snomed_Phrases_v1.txt")
-    modified_to_orig_phrase_map = get_phrase_mapping("snomed_phrases_v3_mapping.tsv")
-
-    # TODO: contains lots of duplicates
-    phrase_to_frequency_dict, dict_of_mults = get_statistics_about_data(base_path, VERSION, modified_to_orig_phrase_map)
-
-    print(sum([y for x,y in phrase_to_frequency_dict.items()]))
-    print(len(phrase_to_frequency_dict))
-    all_possible_phrases = set()
-    with open("/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/snomed_phrases_v5.txt") as f:
-        lines = f.readlines()
-        for line in lines:
-            line = line.strip()
-            all_possible_phrases.add(line)
-
-    snomed_phrases_under_12 = set()
-    with open("/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/heuristic_predicted_labels_all_under_12.tsv") as f:
-        lines = f.readlines()
-        for line in lines[1:]:
-            p1,p2,label = line.strip().split("\t")
-            snomed_phrases_under_12.add(p1.lower())
-            snomed_phrases_under_12.add(p2.lower())
-
-    snomed_cardio_phrases_under_25 = set()
-    # with open("/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/generated_contradicting_pairs_shuffled_exact_cardio_under_25_not_sampled_scratch.csv") as f:
-    with open("/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/generated_contradicting_pairs_shuffled.csv") as f:
-        lines = f.readlines()
-        for line in lines[1:]:
-            w1,p1,w2,p2,label = line.strip().split(",")
-            snomed_cardio_phrases_under_25.add(p1.lower())
-            snomed_cardio_phrases_under_25.add(p2.lower())
-
-    print(len(snomed_cardio_phrases_under_25))
-    print(len(phrase_to_frequency_dict))
-    print(len(snomed_cardio_phrases_under_25.difference(phrase_to_frequency_dict)))
-
-    count=0
-    with open("/home/davem/Sentence_Transformers/data/SNOMED_Contra_Dataset_Exact_Matches_6599.tsv") as f:
-        lines = f.readlines()[1:]
-        for line in lines:
-            found_p1 = False
-            found_p2 = False
-            _,_,_,s1,s2,label = line.split("\t")
-            for p in snomed_cardio_phrases_under_25:
-                if p in s1:
-                    found_p1=True
-                if p in s2:
-                    found_p2=True
-
-            if found_p1 and found_p2:
-                count+=1
-
-
-    # NOTE: exact matches for all of snomed has not been 'cleaned'
-    """
-    The snomed phrases represented in pubmed... will be a subset
-    """
-    # set_of_represented_phrases_1 = get_represented_phrases(base_path,only_single_phrases=ONLY_SINGLE_PHRASES)
-    # set_of_represented_phrases_2 = get_represented_phrases(base_path_2,only_single_phrases=ONLY_SINGLE_PHRASES)
-    # set_of_represented_phrases_3= get_represented_phrases(base_path_3, modified_to_orig_phrase_map,only_single_phrases=ONLY_SINGLE_PHRASES)
-
-    GROUP_NUMBER = 25
-    SAMPLE_NUMBER = 500
-    set_of_plia_labeled_phrases, plia_labeled_list_of_phrase_pairs, set_of_plia_labeled_phrases_no_nums, plia_labeled_list_of_phrase_pairs_no_nums, labels, labels_without_nums = get_plia_labeled_phrases()
-    all_cardio_list_of_phrase_pairs_without_nums, heuristic_labels_without_nums, phrase_pairs_to_label = populated_no_num_snomed_phrase_pairs(keep_numbers=True,group_number=GROUP_NUMBER)  
-    represented_phrase_pair_counts = get_represented_phrase_pair_counts(all_cardio_list_of_phrase_pairs_without_nums, heuristic_labels_without_nums, phrase_to_frequency_dict)
-
-    contra=0
-    non_contra=0
-    for p1,p2,i,label in represented_phrase_pair_counts:
-        if label=='contradiction':
-            contra+=1
-        elif label == 'non-contradiction':
-            non_contra+=1
-    print(contra, non_contra, len(represented_phrase_pair_counts))
-    # assert False
-    count = 0
-    word_counts = {}
-
-    mapping = {'non-contradiction':0, 'contradiction':1}
-
-    phrase_to_weight = {}
-
-    # og_pairs = {}
-    # new_pairs = {}
-    # for p1,p2,,_ in represented_phrase_pair_counts:
-    #     if (p1,p2) in og_pairs:
-    #         og_pairs[(p1,p2)] +=1
-    #     else:
-    #         og_pairs[(p1,p2)] =1
-
-    # TODO: uncomment if want to create heuristic_predicted_labels_sampled.tsv file
-    # then you can plug it in instead of heuristic_predicted_labels.tsv file in function above
-    # this new represented phrase pair counts actually has -1 for all the counts... and is 'more evenly'
-    # distributed across the phrases themselves
-    # new_represented_phrase_pair_counts = handle_phrase_distribution(represented_phrase_pair_counts)
-
-    # sanity check to make sure we use the ground truth labels as our initial starting point... 
-    # assert plia_labeled_list_of_phrase_pairs_no_nums == all_cardio_list_of_phrase_pairs_without_nums[:len(plia_labeled_list_of_phrase_pairs_no_nums)]
-    # assert labels_without_nums == heuristic_labels_without_nums[:len(labels_without_nums)]
-    # assert False
-    dict_of_phrases_to_sentences = create_dataset_of_potentially_contradictory_sentences(base_path, VERSION, phrase_to_frequency_dict, represented_phrase_pair_counts, dict_of_mults, phrase_pairs_to_label, map=modified_to_orig_phrase_map, sample_number=SAMPLE_NUMBER, use_mesh=True, group_number=GROUP_NUMBER)
+    dict_of_phrases_to_sentences = create_dataset_of_potentially_contradictory_sentences(base_path, represented_phrase_pair_counts, args.thresh, sample_number=args.num_samples, use_mesh=args.use_mesh)
     
     for a in dict_of_phrases_to_sentences:
         assert len(dict_of_phrases_to_sentences[a]) == phrase_to_frequency_dict[a]
