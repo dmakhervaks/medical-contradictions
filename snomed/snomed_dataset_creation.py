@@ -639,7 +639,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     base_path = "../pubmed/exact_match_snomed_phrases"
-
+    base_path = "/home/davem/MeSH/ftp.ncbi.nlm.nih.gov/pubmed/exact_match_snomed_phrases"
     phrase_to_frequency_dict, dict_of_mults = get_statistics_about_data(base_path)
 
     list_of_phrase_pairs, labels, phrase_pairs_to_label = populated_no_num_snomed_phrase_pairs(keep_numbers=True)  
