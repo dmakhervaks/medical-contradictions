@@ -27,8 +27,18 @@ For full replication of our process, then local download and processing of PubMe
 - Navigate to the *snomed* folder and run *snomed_dataset_creation.py [--thresh <thresh>] [--num_samples <num_samples>] [--use_mesh]*
 - Creates the dataset under *pubmed/exact_match_snomed_phrases/SNOMED_dataset.tsv*
 
+## Fine-tuning
+1. Run an individual experiment
+- Navigate to *finetuning/* and run *training_nli_cross_encoder.py --yaml <model_yaml_name.yaml> --train_data <dataset1,dataset2,...> --eval_data <dataset1> --eval --train_batch_size <train_batch_size> --eval_batch_size <eval_batch_size> --eval_steps <num_eval_steps> --metric <eval_metric_name> --train --sample_train_subset <-1,or size of random sample>*
+- **NOTE:** The datasets must be one of the ones defined in *dataset_info.py*
+2. Run a batch of experiments
+- Navigate to *finetuning/* and run *automated_experiments.py*
 
-
-
-## Example Calls
-*python training_nli_cross_encoder.py --yaml cross_encoder_deberta_base.yaml --train_data mednli_cardio,Cardio_C35_G25_WN_N10_SN --eval_data mednli_cardio --eval --train_batch_size 16 --eval_batch_size 32 --eval_steps 50 --metric roc_auc --train --sample_train_subset 200*
+## Result Analysis
+1. To generate a table similar to that which is seen in the main results section of the paper:
+- Navigate to *analysis/* and run *delong_test.py*
+- You can specify here which models and datasets to see results from
+- **NOTE:** In addition to wandb, during experimentation all scores are saved in the folder *ARR_Results/*
+2. To generate the graphs that were used in the paper:
+- Navigate to *analysis/* and run *process_results.py*
+- **NOTE:** You need to download the results locally from wandb in order for this to work
