@@ -1,7 +1,7 @@
 # medical-contradictions
 
 ## Download and extracting PubMed data
-For full replication of our process, then local download and processing of PubMed is advised. Follow the steps below.
+For full replication of our process, local download and processing of PubMed is advised. Follow the steps below.
 
 1. Download all of PubMed data locally:
 - Navigate to the *pubmed/* folder and run *pubmed_access.py*
@@ -42,3 +42,12 @@ For full replication of our process, then local download and processing of PubMe
 2. To generate the graphs that were used in the paper:
 - Navigate to *analysis/* and run *process_results.py*
 - **NOTE:** You need to download the results locally from wandb in order for this to work
+
+## Creation of MedNLI subsets
+1. To create the subsets of the MedNLI data, first retrieve the original data
+- We do not release any MedNLI data due to MIMIC-III constraints
+- You can find the data here: *https://physionet.org/content/mednli/1.0.0/*
+2. Filter based on medical specialties
+- You will find medical sub-field keywords under *snomed/mednli_subspecialties*
+- Navigate to *snomed/mednli_subspecialties/* and run *filter_mednli.py*
+    - Make sure to update the path to your downloaded MedNLI data
