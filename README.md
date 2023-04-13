@@ -8,6 +8,7 @@ For full replication of our process, then local download and processing of PubMe
 - Creates the baseline folder
 2. Traverse SNOMED ontology to collect phrases of interest:
 - Navigate to the *snomed/* folder and run *snomedct_arr.ipynb*
+    - Choose **GROUP_SIZE** to be the desired number in the first block
 - Populates a file called *snomed_phrases.tsv* which contains all the SNOMED phrase, cuis, and cui_terms
 - Populates a file called *snomed_pairs_auto_labeled.csv* which contains all SNOMED term-pairs and there auto label as defined by our methodology
 3. Filter PubMed data to only contain relevant phrases:
