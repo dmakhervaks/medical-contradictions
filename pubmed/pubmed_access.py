@@ -6,11 +6,10 @@ import os
 import sys
 import multiprocessing as mp
 import time
-EMAIL="dmakhervaks@hmc.edu"
 
-def download_pubmed(to_folder):
+def download_pubmed(to_folder,email):
     host = 'ftp.ncbi.nlm.nih.gov'
-    ftp = ftplib.FTP(host, passwd=EMAIL)
+    ftp = ftplib.FTP(host, passwd=email)
     ftp.login()
     ftp.cwd("pubmed/baseline/")
     for i in range(1, 973):
@@ -143,15 +142,16 @@ def parse_pubmed_xml_to_dataframe(idx, folder="baseline", search_for_pmid=None):
             
     return num_clinical_trials
             
-POOLSIZE  = 8 # number of CPUs
-pool = mp.Pool(POOLSIZE)
-fnames = [str(x) for x in list(range(1,1115))]
-total_trials = 0
-for x in pool.imap_unordered(parse_pubmed_xml_to_dataframe, fnames, 1):
-   total_trials+=x
-print(f"Total trials: {total_trials}")
+if __name__ == "__main__":
+    POOLSIZE  = 8 # number of CPUs
+    pool = mp.Pool(POOLSIZE)
+    fnames = [str(x) for x in list(range(1,1115))]
+    total_trials = 0
+    for x in pool.imap_unordered(parse_pubmed_xml_to_dataframe, fnames, 1):
+        total_trials+=x
+    print(f"Total trials: {total_trials}")
 
-# NOTE: to run on single core
-# start = int(sys.argv[1])
-# num_trials = parse_pubmed_xml_to_dataframe(start,start)
-# print(start, num_trials)
+    # NOTE: to run on single core
+    # start = int(sys.argv[1])
+    # num_trials = parse_pubmed_xml_to_dataframe(start,start)
+    # print(start, num_trials)
