@@ -1,5 +1,9 @@
 # medical-contradictions
 
+## Important Notes
+- Please replace the **RESULTS_DIRECTORY** global variable in *analysis/delong_test.py* with your file path
+- Please replace the **RESULTS_DIRECTORY** global variable in *finetuning/CESoftmaxRecallEvaluator.py* with your file path
+
 ## Download and extracting PubMed data
 For full replication of our process, local download and processing of PubMed is advised. Follow the steps below.
 
