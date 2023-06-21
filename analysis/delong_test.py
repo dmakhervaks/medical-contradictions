@@ -5,6 +5,7 @@ import random
 import os 
 from tabulate import tabulate
 
+RESULTS_DIRECTORY =  # TODO: PLEASE ENTER A VALID RESULTS DIRECTORY
 
 # AUC comparison adapted from
 # https://github.com/Netflix/vmaf/
@@ -213,74 +214,65 @@ def remove_outliers(one_files, two_files):
 
 import re
 
-models = ["albert_base","electra_small","bert_small","electra_base","bert_base","bioelectra","deberta_small","deberta_base","biogpt"]
+models = ["albert_base","electra_small","bert_small","electra_base","bert_base","bioelectra","deberta_small","deberta_base","biogpt","sota_bert_small","infersent_glove"]
 
 target_group = "Cardio_C35_G25_WN_N10_SN"
+
 base_folder_pairs = []
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/cardio/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+cardio/"
+base_folder_one = f"{RESULTS_DIRECTORY}cardio/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+cardio/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/positive_cardio/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+positive_cardio/"
+base_folder_one = f"{RESULTS_DIRECTORY}positive_cardio/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+positive_cardio/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
 target_group = "All_C35_G25_WN_N10_SN"
 
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/mednli_100/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+mednli_100/"
+base_folder_one = f"{RESULTS_DIRECTORY}mednli_100/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+mednli_100/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/mednli_cardio_100/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+mednli_cardio_100/"
+base_folder_one = f"{RESULTS_DIRECTORY}mednli_cardio_100/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+mednli_cardio_100/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/mednli_female_reproductive_100/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+mednli_female_reproductive_100/"
+base_folder_one = f"{RESULTS_DIRECTORY}mednli_female_reproductive_100/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+mednli_female_reproductive_100/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/mednli_endocrinology_100/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+mednli_endocrinology_100/"
+base_folder_one = f"{RESULTS_DIRECTORY}mednli_endocrinology_100/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+mednli_endocrinology_100/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/mednli_obstetrics_100/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+mednli_obstetrics_100/"
+base_folder_one = f"{RESULTS_DIRECTORY}mednli_obstetrics_100/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+mednli_obstetrics_100/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/mednli_surgery_100/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+mednli_surgery_100/"
+base_folder_one = f"{RESULTS_DIRECTORY}mednli_surgery_100/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+mednli_surgery_100/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
-base_folder_one = "/home/davem/Sentence_Transformers/ARR_Results/mednli/"
-base_folder_two = f"/home/davem/Sentence_Transformers/ARR_Results/{target_group}+mednli/"
+base_folder_one = f"{RESULTS_DIRECTORY}mednli/"
+base_folder_two = f"{RESULTS_DIRECTORY}{target_group}+mednli/"
 base_folder_pairs.append((base_folder_one,base_folder_two))
 
 all_pred_labels = [None]*len(models)
 
-# test_instances = []
-# with open("cardio.tsv") as f:
-#     lines = f.readlines()[1:]
-#     for line in lines:
-#         split,_,_,s1,s2,label = [x.strip() for x in line.split("\t")]
-#         if split == "test":
-#             test_instances.append((s1,s2,label))
-
-
 for base_folder_one, base_folder_two in base_folder_pairs:
-    theirs = [base_folder_one.split("/")[-2] + "."*(30-len(base_folder_one.split("/")[-2]))] 
+    theirs = [base_folder_one.split("/")[-2] + "."*(30-len(base_folder_one.split("/")[-2]))]
     ours = [base_folder_two.split("/")[-1]]
     theirs_sanity = []
     ours_sanity = []
     all_p_values=[]
     max_aoc = 0
     for i,model in enumerate(models):
-        # print(base_folder_one.split("/")[-1])
         output_log_file_one = base_folder_one+model+"/pred_scores.npy"
         output_log_file_two = base_folder_two+model+"/pred_scores.npy"
 
-
         one_files = [x for x in sorted(os.listdir(base_folder_one+model)) if "pred_scores_" in x]
         two_files = [x for x in sorted(os.listdir(base_folder_two+model)) if "pred_scores_" in x]
+
 
         for file in one_files:
             if "pred_scores_" in file:
@@ -292,9 +284,7 @@ for base_folder_one, base_folder_two in base_folder_pairs:
                 score = file.split("_")[-1][:-4]
                 a = np.load(base_folder_two+model+"/"+file)
 
-        # one_files,two_files = remove_outliers(one_files,two_files)
         one_files,two_files = get_medians(one_files,two_files)
-        # one_files,two_files=get_closest_to_average(one_files,two_files)
 
         one_avg = np.array([])
         two_avg = np.array([])
