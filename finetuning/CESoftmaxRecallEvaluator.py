@@ -17,6 +17,7 @@ from dython.model_utils import metric_graph
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+RESULTS_DIRECTORY = # TODO: PLEASE ENTER A VALID RESULTS DIRECTORY
 
 class CESoftmaxGeneralEvaluator:
     """
@@ -208,7 +209,7 @@ class CESoftmaxGeneralEvaluator:
 
         if self.test_loop:
             rounded_roc = round(roc_auc,3)
-            base_dir = "/home/davem/Sentence_Transformers/ARR_Results/"+self.fine_tuned_datasets+"/"+self.base_model_name
+            base_dir = RESULTS_DIRECTORY+self.fine_tuned_datasets+"/"+self.base_model_name
             pred_score_file = base_dir+"/pred_scores_"+str(rounded_roc)+".npy"
             label_file = base_dir+"/labels.npy"
 
