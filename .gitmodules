@@ -1,0 +1,3 @@
+[submodule "mednli_baseline"]
+	path = mednli_baseline
+	url = https://github.com/jgc128/mednli_baseline
