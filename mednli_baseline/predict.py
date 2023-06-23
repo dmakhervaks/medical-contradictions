@@ -14,7 +14,7 @@ from utils.mednli import read_mednli, read_sentences
 from utils.pickle import load_pickle
 from utils.torch import load_weights, create_data_loader, to_device
 
-RESULTS_DIRECTORY = # TODO: PLEASE ENTER A VALID RESULTS DIRECTORY
+RESULTS_DIRECTORY =  "" # TODO: PLEASE ENTER A VALID RESULTS DIRECTORY
 
 def save_predictions(predictions, filename, cfg, score):
     score = round(score,3)
