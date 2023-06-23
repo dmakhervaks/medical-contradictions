@@ -31,10 +31,17 @@ For full replication of our process, local download and processing of PubMed is 
 - Navigate to the *snomed* folder and run *snomed_dataset_creation.py [--thresh <thresh>] [--num_samples <num_samples>] [--use_mesh]*
 - Creates the dataset under *pubmed/exact_match_snomed_phrases/SNOMED_dataset.tsv*
 
+## Baselines
+- Romanov and Shivade's baseline can be found under *mednli_baseline*
+  - Please update the *mednli_baseline/utils/config.py* if you would to train/evaluate on different datasets
+  - More specific instructions can be found under *mednli_baseline/README.md*
+- Yazi et al.'s baseline can be run with the Fine-tuning command detailed in the section below
+
 ## Fine-tuning
 1. Run an individual experiment
-- Navigate to *finetuning/* and run *training_nli_cross_encoder.py --yaml <model_yaml_name.yaml> --train_data <dataset1,dataset2,...> --eval_data <dataset1> --eval --train_batch_size <train_batch_size> --eval_batch_size <eval_batch_size> --eval_steps <num_eval_steps> --metric <eval_metric_name> --train --sample_train_subset <-1,or size of random sample>*
+- Navigate to *finetuning/* and run *training_nli_cross_encoder.py --yaml <model_yaml_name.yaml> --train_data <dataset1,dataset2,...> --eval_data <dataset1> --eval --train_batch_size <train_batch_size> --eval_batch_size <eval_batch_size> --eval_steps <num_eval_steps> --metric <eval_metric_name> --train --sample_train_subset <-1,or size of random sample>* [--sota]
 - **NOTE:** The datasets must be one of the ones defined in *dataset_info.py*
+- **NOTE:** The --sota argument is used to reproduce Yazi's model
 2. Run a batch of experiments
 - Navigate to *finetuning/* and run *automated_experiments.py*
 
