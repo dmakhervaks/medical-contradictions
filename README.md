@@ -23,6 +23,17 @@ For full replication of our process, local download and processing of PubMed is 
         - **NOTE:** folder *unique_words/* must be created prior to running with this argument
         - Results stored in folder *exact_match_snomed_phrases/*
 
+## Iterating over SNOMED Ontology
+1. The script which iterates over the ontology is located in: *snomed/snomedct.ipynb*
+2. In order to run the script, you will need to have the following files in the *snomed* directory:
+- The metathesaurus file (*2022AA.zip*) -> can be downloaded form here https://www.nlm.nih.gov/research/umls/archive/archive_home.html
+- *all_list_of_dicts.tsv* -> Easily downloaded via Google Drive or created via snomed_mining.py
+- *snomed_all_phrases_cui.tsv* -> Easily downloaded via Google Drive or created via snomed_mining.py
+- *synonym_dict.json* -> Easily downloaded via Google Drive or filled up using use_synonym_heuristic() method
+- *antonym_dict.json* -> Easily downloaded via Google Drive or filled up using use_synonym_heuristic() method
+3. Run the notebook and play around with hyperparams such as the group size and the field_terms which you want to focus on during tree processing
+4. Creates the *snomed_pairs_auto_labeled.csv* file which is used in the SNOMED Dataset creation
+
 ## Creating SNOMED Dataset
 1. Ensure that all PubMed data is extracted. Notably you will need the following files/folders:
 - *snomed/snomed_pairs_auto_labeled.csv*
