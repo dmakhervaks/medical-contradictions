@@ -26,7 +26,7 @@ For full replication of our process, local download and processing of PubMed is 
 ## Iterating over SNOMED Ontology
 1. The script which iterates over the ontology is located in: *snomed/snomedct.ipynb*
 2. In order to run the script, you will need to have the following files in the *snomed* directory:
-- The metathesaurus file (*2022AA.zip*) -> can be downloaded form here https://www.nlm.nih.gov/research/umls/archive/archive_home.html
+- The metathesaurus file (*2022AA.zip*) -> can be downloaded from here https://www.nlm.nih.gov/research/umls/archive/archive_home.html
 - *all_list_of_dicts.tsv* -> Easily downloaded via Google Drive or created via snomed_mining.py
 - *snomed_all_phrases_cui.tsv* -> Easily downloaded via Google Drive or created via snomed_mining.py
 - *synonym_dict.json* -> Easily downloaded via Google Drive or filled up using use_synonym_heuristic() method
