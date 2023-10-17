@@ -437,8 +437,8 @@ if __name__ == "__main__":
 
     phrase_to_tokenized_phrase_map = {}
     for phrase in set_of_snomed_phrases:
-        phrase_words = phrase.split(" ")
-        phrase_to_tokenized_phrase_map[phrase]=phrase_words
+        phrase_words = [x.lower() for x in phrase.split(" ")]
+        phrase_to_tokenized_phrase_map[phrase.lower()]=phrase_words
 
 
     # NOTE: processes all of the baseline pubmed files locally by filtering first the sentences containing unique words
